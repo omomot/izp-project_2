@@ -138,6 +138,14 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
 void append_cluster(struct cluster_t *c, struct obj_t obj)
 {
     // TODO
+    if (c->size == c->capacity)
+    {
+        c = resize_cluster(c, c->capacity + 1);
+    }
+    ((c->obj) + c->size)->id = obj.id;
+    ((c->obj) + c->size)->x = obj.x;
+    ((c->obj) + c->size)->y = obj.y;
+    c->size++; 
 }
 
 /*
@@ -255,6 +263,8 @@ void print_cluster(struct cluster_t *c)
  kam se odkazuje parametr 'arr'. Funkce vraci pocet nactenych objektu (shluku).
  V pripade nejake chyby uklada do pameti, kam se odkazuje 'arr', hodnotu NULL.
 */
+
+// Returns -1 is any error occured and NULL in arr, otherwise - the number of read objects
 int load_clusters(char *filename, struct cluster_t **arr)
 {
     assert(arr != NULL);
@@ -263,10 +273,18 @@ int load_clusters(char *filename, struct cluster_t **arr)
     FILE *objects = fopen(filename, 'r');
     int N;
     scanf("count=%d", &N);
-    
-    for (int i = 1; i <= N; i++)
-    {
 
+    arr = malloc(sizeof(struct cluster_t*) * N); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    if (arr == NULL)
+        return -1;
+
+    for (int i = 0; i < N; i++)
+    {
+        int objid;
+        float x, y;
+        scanf("%d %f %f", &objid, &x, &y);
+        
     }
 
     fclose(objects);
@@ -290,7 +308,9 @@ void print_clusters(struct cluster_t *carr, int narr)
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
-
+    /*
+    * IN LOAD CLUSTERS MEMORY IS ALLOCATED FOR N CLUSTERS BUT NEVER FREED!!!!!
+    */
     // TODO
     return -1;
 }
