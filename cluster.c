@@ -270,9 +270,10 @@ int load_clusters(char *filename, struct cluster_t **arr)
     assert(arr != NULL);
 
     // TODO
-    FILE *objects = fopen(filename, 'r');
+    FILE *objects = fopen(filename, "r");
     int N;
-    scanf("count=%d", &N);
+    fscanf(objects, "count=%d", &N);
+    printf("count=%d\n", N);
 
     arr = malloc(sizeof(struct cluster_t*) * N); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -281,10 +282,10 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     for (int i = 0; i < N; i++)
     {
-        int objid;
-        float x, y;
-        scanf("%d %f %f", &objid, &x, &y);
-        
+        init_cluster(*(arr + i), 1);
+        struct obj_t temp_obj;
+        fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y);
+        append_cluster(*(arr + i), temp_obj);  
     }
 
     fclose(objects);
@@ -304,13 +305,26 @@ void print_clusters(struct cluster_t *carr, int narr)
         print_cluster(&carr[i]);
     }
 }
-
+// argv[] = {./cluster, FILE, N(optional)}
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
+    
     /*
     * IN LOAD CLUSTERS MEMORY IS ALLOCATED FOR N CLUSTERS BUT NEVER FREED!!!!!
     */
     // TODO
+    struct cluster_t cluster;
+    init_cluster(&cluster, 0);
+    print_cluster(&cluster);
+    /*char *input_file = argv[1];
+    int n_clusters = 1;
+    if (argc == 3)
+        n_clusters = atoi(argv[2]);
+    if (argc > 3)
+        fprintf(stderr, "Wrong number of arguments of command line!\n");
+
+    load_clusters(input_file, &clusters);
+    print_clusters(clusters, 20);*/
     return -1;
 }
