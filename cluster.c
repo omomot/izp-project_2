@@ -100,6 +100,8 @@ void init_cluster(struct cluster_t *c, int cap)
 void clear_cluster(struct cluster_t *c)
 {
     // TODO
+    free(c->obj); // If c is NULL, no operation is performed.
+    c->obj = NULL;
 }
 
 /// Chunk of cluster objects. Value recommended for reallocation.
@@ -258,6 +260,16 @@ int load_clusters(char *filename, struct cluster_t **arr)
     assert(arr != NULL);
 
     // TODO
+    FILE *objects = fopen(filename, 'r');
+    int N;
+    scanf("count=%d", &N);
+    
+    for (int i = 1; i <= N; i++)
+    {
+
+    }
+
+    fclose(objects);
     return -1;
 }
 
