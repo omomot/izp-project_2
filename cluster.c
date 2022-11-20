@@ -1,6 +1,6 @@
 /**
  * Author : Oleh Momot, xmomot00
- * Date : 19.11.2022
+ * Date : 20.11.2022
  * 
  * Kostra programu pro 2. projekt IZP 2022/23
  *
@@ -270,26 +270,33 @@ int load_clusters(char *filename, struct cluster_t **arr)
     assert(arr != NULL);
 
     // TODO
-    FILE *objects = fopen(filename, "r");
-    int N;
-    fscanf(objects, "count=%d", &N);
-    printf("count=%d\n", N);
-
-    arr = malloc(sizeof(struct cluster_t*) * N); // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    if (arr == NULL)
-        return -1;
-
-    for (int i = 0; i < N; i++)
+    FILE *objects = fopen(filename, "r"); // opening input file
+    if (objects == NULL) // Checking if any error occured while openning file
     {
-        init_cluster(*(arr + i), 1);
-        struct obj_t temp_obj;
-        fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y);
-        append_cluster(*(arr + i), temp_obj);  
+        *arr = NULL;
+        return -1;
     }
 
-    fclose(objects);
-    return -1;
+    int N; 
+    fscanf(objects, "count=%d", &N); // Reading the number of objects from input file
+
+    struct cluster_t *temp = malloc(sizeof(struct cluster_t) * N); // Allocating space for N clusters on heap
+    if (temp == NULL) // Checking if any error occured while allocation
+    {
+        *arr = NULL;
+        return -1;
+    }
+    *arr = temp; // Pointing a value in (*arr) on the array of clusters allocated on heap
+    for (int i = 0; i < N; i++)
+    {
+        init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
+        struct obj_t temp_obj; // temporary object to read data from input file into
+        fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y); // Reading i-th object data from input file
+        append_cluster(*arr + i, temp_obj); // Appending i-th object to i-th cluster
+    }
+
+    fclose(objects); // closing input file
+    return N;
 }
 
 /*
@@ -314,17 +321,20 @@ int main(int argc, char *argv[])
     * IN LOAD CLUSTERS MEMORY IS ALLOCATED FOR N CLUSTERS BUT NEVER FREED!!!!!
     */
     // TODO
-    struct cluster_t cluster;
-    init_cluster(&cluster, 0);
-    print_cluster(&cluster);
-    /*char *input_file = argv[1];
+    
+    char *input_file = argv[1];
     int n_clusters = 1;
     if (argc == 3)
         n_clusters = atoi(argv[2]);
     if (argc > 3)
         fprintf(stderr, "Wrong number of arguments of command line!\n");
 
-    load_clusters(input_file, &clusters);
-    print_clusters(clusters, 20);*/
-    return -1;
+    int default_n_clusters = load_clusters(input_file, &clusters);
+    print_clusters(clusters, default_n_clusters);
+    for (int i = 0; i < default_n_clusters; i++)
+    {
+        clear_cluster(clusters+i);
+    }
+    free(clusters);
+    return 0;
 }
