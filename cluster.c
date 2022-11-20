@@ -86,9 +86,9 @@ void init_cluster(struct cluster_t *c, int cap)
     assert(cap >= 0);
     
     // TODO
-    void *temp = malloc(sizeof(struct obj_t) * cap);
+    void *temp = malloc(sizeof(struct obj_t) * cap); // Allocating memory for array of objects with capacity == cap
     assert(temp != NULL); // Error while allocating memory
-
+    
     c->capacity = cap;
     c->size = 0;
     c->obj = (struct obj_t*)temp;
@@ -333,10 +333,15 @@ int main(int argc, char *argv[])
     // Setting the default number of clusters to the number of objects in input file
     int default_n_clusters = load_clusters(input_file, &clusters);  
     print_clusters(clusters, default_n_clusters);
+    
+    
+    
+    // Freeing memory allocated for objects of each cluster
     for (int i = 0; i < default_n_clusters; i++)
     {
         clear_cluster(clusters+i);
     }
+    //Freeing memory, allocated for array of clusters
     free(clusters);
     return 0;
 }
