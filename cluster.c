@@ -316,20 +316,22 @@ void print_clusters(struct cluster_t *carr, int narr)
 int main(int argc, char *argv[])
 {
     struct cluster_t *clusters;
-    
-    /*
-    * IN LOAD CLUSTERS MEMORY IS ALLOCATED FOR N CLUSTERS BUT NEVER FREED!!!!!
-    */
     // TODO
     
-    char *input_file = argv[1];
-    int n_clusters = 1;
-    if (argc == 3)
-        n_clusters = atoi(argv[2]);
-    if (argc > 3)
+    if (argc > 3 || argc < 2) // Wrong number of arguments of command line
+    {
         fprintf(stderr, "Wrong number of arguments of command line!\n");
+        return 1;
+    }
 
-    int default_n_clusters = load_clusters(input_file, &clusters);
+    char *input_file = argv[1]; // argc will always be at least 2 => nothing to worry about
+    // setting number of clusters to the default value
+    int n_clusters = 1; 
+    // Checking if the user set the optional argument
+    if (argc == 3) 
+        n_clusters = atoi(argv[2]);
+    // Setting the default number of clusters to the number of objects in input file
+    int default_n_clusters = load_clusters(input_file, &clusters);  
     print_clusters(clusters, default_n_clusters);
     for (int i = 0; i < default_n_clusters; i++)
     {
