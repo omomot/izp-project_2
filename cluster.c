@@ -1,6 +1,6 @@
 /**
  * Author : Oleh Momot, xmomot00
- * Date : 20.11.2022
+ * Date : 24.11.2022
  * 
  * Kostra programu pro 2. projekt IZP 2022/23
  *
@@ -141,6 +141,7 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
     if (c->size == c->capacity)
     {
         c = resize_cluster(c, c->capacity + 1);
+        // if error OCCURED c == NULL !!!!!
     }
     ((c->obj) + c->size)->id = obj.id;
     ((c->obj) + c->size)->x = obj.x;
@@ -192,7 +193,8 @@ float obj_distance(struct obj_t *o1, struct obj_t *o2)
     assert(o2 != NULL);
 
     // TODO
-    return -1;
+    float distance = sqrtf((o1->x - o2->x) * (o1->x - o2->x) + (o1->y - o2->y) * (o1->y - o2->y));
+    return distance;
 }
 
 /*
@@ -206,7 +208,20 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2->size > 0);
 
     // TODO
-    return -1;
+    // default cl_dist is distance between the first (index - 0) object of c1 and the first (index - 0) object of c2
+    float cl_dist = obj_distance(c1->obj, c2->obj); 
+    for (int i = 0; i < c1->size; i++)
+    {
+        for (int j = 0; j < c2->size; j++)
+        {
+            struct obj_t *o1 = (c1->obj + i);
+            struct obj_t *o2 = (c2->obj + j);
+            float distance = obj_distance(o1, o2);
+            if (distance < cl_dist) // Comparing two float values!!!!
+                cl_dist = distance;
+        }
+    }
+    return cl_dist;
 }
 
 /*
@@ -218,8 +233,9 @@ float cluster_distance(struct cluster_t *c1, struct cluster_t *c2)
 void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
 {
     assert(narr > 0);
-
+    
     // TODO
+
 }
 
 // pomocna funkce pro razeni shluku
@@ -341,8 +357,23 @@ int main(int argc, char *argv[])
     int default_n_clusters = load_clusters(input_file, &clusters);  
     print_clusters(clusters, default_n_clusters);
     
+    for (int i = 0; i < default_n_clusters; i++)
+    {
+        for (int j = 0; j < default_n_clusters; j++)
+        {
+            printf("Distance between cluster [%d] and cluster [%d] is : %f\n", i, j, cluster_distance(clusters + i, clusters + j));
+        }
+    }
     
-    
+
+
+
+
+
+
+
+
+
     // Freeing memory allocated for objects of each cluster
     for (int i = 0; i < default_n_clusters; i++)
     {
