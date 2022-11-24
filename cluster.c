@@ -330,6 +330,13 @@ int main(int argc, char *argv[])
     // Checking if the user set the optional argument
     if (argc == 3) 
         n_clusters = atoi(argv[2]);
+    
+    //Checking if entered number of clusters is valid
+    if (n_clusters <= 0)
+    {
+        fprintf(stderr, "Wrong arguments od command line! Entered number of clusters is not valid!\n");
+        return 1;
+    }
     // Setting the default number of clusters to the number of objects in input file
     int default_n_clusters = load_clusters(input_file, &clusters);  
     print_clusters(clusters, default_n_clusters);
