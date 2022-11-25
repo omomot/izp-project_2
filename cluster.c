@@ -140,7 +140,8 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
     // TODO
     if (c->size == c->capacity)
     {
-        c = resize_cluster(c, c->capacity + 1);
+        // c = resize_cluster(c, c->capacity + 1);
+        c = resize_cluster(c, c->capacity + CLUSTER_CHUNK);
         // if error OCCURED c == NULL !!!!!
     }
     ((c->obj) + c->size)->id = obj.id;
@@ -305,7 +306,8 @@ int load_clusters(char *filename, struct cluster_t **arr)
     *arr = temp; // Pointing a value in (*arr) on the array of clusters allocated on heap
     for (int i = 0; i < N; i++)
     {
-        init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
+        init_cluster(*arr + i, CLUSTER_CHUNK);
+        //init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
         struct obj_t temp_obj; // temporary object to read data from input file into
         fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y); // Reading i-th object data from input file
         append_cluster(*arr + i, temp_obj); // Appending i-th object to i-th cluster
