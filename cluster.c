@@ -1,6 +1,6 @@
 /**
  * Author : Oleh Momot, xmomot00
- * Date : 24.11.2022
+ * Date : 26.11.2022
  * 
  * Kostra programu pro 2. projekt IZP 2022/23
  *
@@ -166,6 +166,21 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     assert(c2 != NULL);
 
     // TODO
+    if (c1->capacity < c1->size + c2->size)
+    {
+        if (resize_cluster(c1, c1->size + c2->size) == NULL)
+        {
+            fprintf(stderr, "Error while reallocating memory in merge_clusters occured!\n");
+            abort();
+        }
+    }
+
+    for (int i = 0; i < c2->size; i++)
+    {
+        struct obj_t temp_obj = *(c2->obj + i);
+        append_cluster(c1, temp_obj);
+    }
+    sort_cluster(c1);
 }
 
 /**********************************************************************/
@@ -182,7 +197,14 @@ int remove_cluster(struct cluster_t *carr, int narr, int idx)
     assert(narr > 0);
 
     // TODO
-    return -1;
+    clear_cluster(carr+idx);
+    for (int i = idx; i < narr - 1; i++)
+    {
+        (carr+i)->capacity = (carr+i+1)->capacity;
+        (carr+i)->size = (carr+i+1)->size;
+        (carr+i)->obj = (carr+i+1)->obj;
+    }
+    return narr-1;
 }
 
 /*
@@ -236,6 +258,22 @@ void find_neighbours(struct cluster_t *carr, int narr, int *c1, int *c2)
     assert(narr > 0);
     
     // TODO
+    float min_dist = cluster_distance(carr, carr+1);
+    *c1 = 0;
+    *c2 = 1;
+    for (int i = 0; i < narr; i++)
+    {
+        for (int j = i + 1; j < narr; j++)
+        {
+            float new_dist = cluster_distance(carr+i, carr+j);
+            if (new_dist < min_dist)
+            {
+                min_dist = new_dist;
+                *c1 = i;
+                *c2 = j;
+            }
+        }
+    }
 
 }
 
@@ -357,18 +395,27 @@ int main(int argc, char *argv[])
     }
     // Setting the default number of clusters to the number of objects in input file
     int default_n_clusters = load_clusters(input_file, &clusters);  
-    print_clusters(clusters, default_n_clusters);
+    print_clusters(clusters, default_n_clusters); //DELETE THIS
     
+    /*
     for (int i = 0; i < default_n_clusters; i++)
     {
         for (int j = 0; j < default_n_clusters; j++)
         {
             printf("Distance between cluster [%d] and cluster [%d] is : %f\n", i, j, cluster_distance(clusters + i, clusters + j));
         }
-    }
+    }*/
     
-
-
+    // WHAT IF N_CLUSTERS > DEFAULT_N_CLUSTERS????????
+    printf("************************************************\n");
+    for (int number_clusters = default_n_clusters; number_clusters > n_clusters; number_clusters--)
+    {
+        int i, j;
+        find_neighbours(clusters, number_clusters, &i, &j);
+        merge_clusters(clusters + i, clusters + j);
+        remove_cluster(clusters, number_clusters, j);
+    }
+    print_clusters(clusters, n_clusters);
 
 
 
@@ -377,7 +424,7 @@ int main(int argc, char *argv[])
 
 
     // Freeing memory allocated for objects of each cluster
-    for (int i = 0; i < default_n_clusters; i++)
+    for (int i = 0; i < n_clusters; i++)
     {
         clear_cluster(clusters+i);
     }
