@@ -142,7 +142,7 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
     {
         // c = resize_cluster(c, c->capacity + 1);
         c = resize_cluster(c, c->capacity + CLUSTER_CHUNK);
-        // if error OCCURED c == NULL !!!!!
+        assert(c != NULL);
     }
     ((c->obj) + c->size)->id = obj.id;
     ((c->obj) + c->size)->x = obj.x;
@@ -168,7 +168,7 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     // TODO
     if (c1->capacity < c1->size + c2->size)
     {
-        if (resize_cluster(c1, c1->size + c2->size) == NULL)
+        if ((c1 = resize_cluster(c1, c1->size + c2->size)) == NULL)
         {
             fprintf(stderr, "Error while reallocating memory in merge_clusters occured!\n");
             abort();
@@ -333,8 +333,12 @@ int load_clusters(char *filename, struct cluster_t **arr)
     }
 
     int N; 
-    fscanf(objects, "count=%d", &N); // Reading the number of objects from input file
-
+    int read = fscanf(objects, "count=%d", &N); // Reading the number of objects from input file
+    if (!read)
+    {
+        *arr = NULL;
+        return -1;
+    }
     struct cluster_t *temp = malloc(sizeof(struct cluster_t) * N); // Allocating space for N clusters on heap
     if (temp == NULL) // Checking if any error occured while allocation
     {
@@ -348,6 +352,11 @@ int load_clusters(char *filename, struct cluster_t **arr)
         //init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
         struct obj_t temp_obj; // temporary object to read data from input file into
         fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y); // Reading i-th object data from input file
+        if (temp_obj.x > 1000 || temp_obj.x < 0 || temp_obj.y > 1000 || temp_obj.y < 0)
+        {
+            *arr = NULL;
+            return -1;
+        }
         append_cluster(*arr + i, temp_obj); // Appending i-th object to i-th cluster
     }
 
@@ -395,19 +404,19 @@ int main(int argc, char *argv[])
     }
     // Setting the default number of clusters to the number of objects in input file
     int default_n_clusters = load_clusters(input_file, &clusters);  
-    print_clusters(clusters, default_n_clusters); //DELETE THIS
-    
-    /*
-    for (int i = 0; i < default_n_clusters; i++)
+    if (default_n_clusters == -1) // error while loading clusters occured
     {
-        for (int j = 0; j < default_n_clusters; j++)
-        {
-            printf("Distance between cluster [%d] and cluster [%d] is : %f\n", i, j, cluster_distance(clusters + i, clusters + j));
-        }
-    }*/
+        fprintf(stderr, "Error while loading clusters occured!\n");
+        return 1;
+    }
+    if (n_clusters > default_n_clusters)
+    {
+        fprintf(stderr, "Invalid number of clusters. You can not make more clusters by uniting them\n");
+        return -1;
+    }
     
     // WHAT IF N_CLUSTERS > DEFAULT_N_CLUSTERS????????
-    printf("************************************************\n");
+    
     for (int number_clusters = default_n_clusters; number_clusters > n_clusters; number_clusters--)
     {
         int i, j;
