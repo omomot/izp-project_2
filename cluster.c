@@ -334,6 +334,22 @@ void print_cluster(struct cluster_t *c)
     putchar('\n');
 }
 
+// Checkes if each id in array is unique. Returns 1 - if are unique, otherwise - 0
+int check_uniqueness(int *ids, int n)
+{
+    for(int i = 0; i < n; i++)
+    {
+        for(int j = 0; j < n; j++)
+        {
+            if (i == j)
+                continue;
+            if (ids[i] == ids[j])
+                return 0;
+        }
+    }
+    return 1;
+}
+
 /*
  Ze souboru 'filename' nacte objekty. Pro kazdy objekt vytvori shluk a ulozi
  jej do pole shluku. Alokuje prostor pro pole vsech shluku a ukazatel na prvni
@@ -342,40 +358,58 @@ void print_cluster(struct cluster_t *c)
  V pripade nejake chyby uklada do pameti, kam se odkazuje 'arr', hodnotu NULL.
 */
 
-// Returns -1 is any error occured and NULL in arr, otherwise - the number of read objects
 int load_clusters(char *filename, struct cluster_t **arr)
 {
     assert(arr != NULL);
 
     // TODO
+    int N = 0;
     FILE *objects = fopen(filename, "r"); // opening input file
     if (objects == NULL) // Checking if any error occured while openning file
     {
         fprintf(stderr, "Error while openning file occured!\n");
         *arr = NULL;
-        return -1;
+        goto err_return_N;
     }
 
-    int N; 
-    int read = fscanf(objects, "count=%d\n", &N); // Reading the number of objects from input file
+    
+    float temp_N;
+    int read = fscanf(objects, "count=%f\n", &temp_N); // Reading the number of objects from input file
+    if (trunc(temp_N) != temp_N)
+    {
+        fprintf(stderr, "Count of objects in input file is not an integer value!\n");
+        *arr = NULL;
+        goto err_close_file;
+    }
+    N = (int) temp_N;
+    
+    // Allocating memory for array of id-s to check theirs uniqueness
+    int *ids = (int *) malloc(sizeof(int) * N); 
+    if (ids == NULL)
+    {
+        fprintf(stderr, "Error while allocating memory for ids array occured!\n");
+        *arr = NULL;
+        goto err_close_file;
+    }
+
     if (!read) // read == 1 if count was read, otherwise is 0
     {
         fprintf(stderr, "Error while reading count occured!\n");
         *arr = NULL;
-        return -1;
+        goto err_free_ids;
     }
     if (N <= 0)
     {
         fprintf(stderr, "Enterd cound in input file is invalid!\n");
         *arr = NULL;
-        return -1;
+        goto err_free_ids;
     }
     struct cluster_t *temp = malloc(sizeof(struct cluster_t) * N); // Allocating space for N clusters on heap
     if (temp == NULL) // Checking if any error occured while allocation
     {
         fprintf(stderr, "Error while allocating memory for clusters occured!\n");
         *arr = NULL;
-        return -1;
+        goto err_free_ids;
     }
     *arr = temp; // Pointing a value in (*arr) on the array of clusters allocated on heap
     for (int i = 0; i < N; i++)
@@ -390,7 +424,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
         {
             fprintf(stderr, "Invalid number of data on one line in input file!\n");
             *arr = NULL;
-            return -1;
+            goto err_free_ids;
         }
 
         // Checking if object id is an integer value
@@ -398,7 +432,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
         {
             fprintf(stderr, "Object id is not integer!");
             *arr = NULL;
-            return -1;
+            goto err_free_ids;
         }
 
         //Checking if object coordinates are integer values
@@ -406,7 +440,7 @@ int load_clusters(char *filename, struct cluster_t **arr)
         {
             fprintf(stderr, "Object coordinates are not integer!\n");
             *arr = NULL;
-            return -1;
+            goto err_free_ids;
         }
 
         // Coordinates are out of range
@@ -414,23 +448,33 @@ int load_clusters(char *filename, struct cluster_t **arr)
         {
             fprintf(stderr, "Coordinates of an object are out of range!\n");
             *arr = NULL;
-            return -1;
+            goto err_free_ids;
         }
 
         temp_obj.id = (int) id;
         temp_obj.x = x;
         temp_obj.y = y;
         
+        ids[i] = (int) id;
         
         if (!append_cluster(*arr + i, temp_obj))// Appending i-th object to i-th cluster and checking if everything was OK
         {
             fprintf(stderr, "Error while adding object into cluster in load_clusters() occured!\n");
             *arr = NULL;
-            return -1;
+            goto err_free_ids;
         }
     }
-
+    if (!check_uniqueness(ids, N))
+    {
+        fprintf(stderr, "Ids in input file are not unique!\n");
+        *arr = NULL;
+        goto err_free_ids;
+    }
+    err_free_ids:
+    free(ids);
+    err_close_file:
     fclose(objects); // closing input file
+    err_return_N:
     return N;
 }
 
@@ -493,9 +537,10 @@ int main(int argc, char *argv[])
     }
     
     // Setting the default number of clusters to the number of objects in input file
-    int default_n_clusters = load_clusters(input_file, &clusters);  //memory allocation and clusters loading
+    int default_n_clusters = 0;
+    default_n_clusters = load_clusters(input_file, &clusters);  //memory allocation and clusters loading
     
-    if (default_n_clusters == -1) // error while loading clusters occured
+    if (clusters == NULL) // error while loading clusters occured
     {
         fprintf(stderr, "Error while loading clusters occured!\n");
         cluster_dtor(clusters, default_n_clusters);
