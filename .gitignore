@@ -2,3 +2,5 @@ cluster
 .vscode/
 test.py
 input
+in.c
+in

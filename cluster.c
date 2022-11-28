@@ -1,12 +1,20 @@
 /**
  * Author : Oleh Momot, xmomot00
- * Date : 26.11.2022
+ * Date : 28.11.2022
  * 
  * Kostra programu pro 2. projekt IZP 2022/23
  *
  * Jednoducha shlukova analyza: 2D nejblizsi soused.
  * Single linkage
  */
+
+/**
+ * Errors:
+ * 1) Unique identifiers
+ * 2) X and Y may not be real
+ * 3) count=''
+ * 4) asserts do not work with NDEBUG defined
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -142,7 +150,11 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
     {
         // c = resize_cluster(c, c->capacity + 1);
         c = resize_cluster(c, c->capacity + CLUSTER_CHUNK);
-        assert(c != NULL);
+        if (c == NULL)
+        {
+            fprintf(stderr, "Error while reallocating memory in append_cluster() occured!\n");
+            exit(1);
+        }
     }
     ((c->obj) + c->size)->id = obj.id;
     ((c->obj) + c->size)->x = obj.x;
@@ -170,8 +182,8 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
     {
         if ((c1 = resize_cluster(c1, c1->size + c2->size)) == NULL)
         {
-            fprintf(stderr, "Error while reallocating memory in merge_clusters occured!\n");
-            abort();
+            fprintf(stderr, "Error while reallocating memory in merge_clusters() occured!\n");
+            exit(1);
         }
     }
 
@@ -328,20 +340,30 @@ int load_clusters(char *filename, struct cluster_t **arr)
     FILE *objects = fopen(filename, "r"); // opening input file
     if (objects == NULL) // Checking if any error occured while openning file
     {
+        fprintf(stderr, "Error while openning file occured!\n");
         *arr = NULL;
         return -1;
     }
 
     int N; 
-    int read = fscanf(objects, "count=%d", &N); // Reading the number of objects from input file
-    if (!read)
+    int read = fscanf(objects, "count=%d\n", &N); // Reading the number of objects from input file
+    dint(N);
+    if (!read) // read == 1 if count was read, otherwise is 0
     {
+        fprintf(stderr, "Error while reading count occured!\n");
+        *arr = NULL;
+        return -1;
+    }
+    if (N <= 0)
+    {
+        fprintf(stderr, "Enterd cound in input file is invalid!\n");
         *arr = NULL;
         return -1;
     }
     struct cluster_t *temp = malloc(sizeof(struct cluster_t) * N); // Allocating space for N clusters on heap
     if (temp == NULL) // Checking if any error occured while allocation
     {
+        fprintf(stderr, "Error while allocating memory for clusters occured!\n");
         *arr = NULL;
         return -1;
     }
@@ -351,12 +373,45 @@ int load_clusters(char *filename, struct cluster_t **arr)
         init_cluster(*arr + i, CLUSTER_CHUNK);
         //init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
         struct obj_t temp_obj; // temporary object to read data from input file into
-        fscanf(objects, "%d %f %f", &temp_obj.id, &temp_obj.x, &temp_obj.y); // Reading i-th object data from input file
-        if (temp_obj.x > 1000 || temp_obj.x < 0 || temp_obj.y > 1000 || temp_obj.y < 0)
+        float id, x, y;
+        int read_obj = fscanf(objects, "%f %f %f\n", &id, &x, &y); // Reading i-th object data from input file
+
+        //Checking number of read data
+        if (read_obj != 3)
         {
+            fprintf(stderr, "Invalid number of data on one line in input file!\n");
             *arr = NULL;
             return -1;
         }
+
+        // Checking if object id is an integer value
+        if (trunc(id) != id) 
+        {
+            fprintf(stderr, "Object id is not integer!");
+            *arr = NULL;
+            return -1;
+        }
+
+        //Checking if object coordinates are integer values
+        if (trunc(x) != x || trunc(y) != y)
+        {
+            fprintf(stderr, "Object coordinates are not integer!\n");
+            *arr = NULL;
+            return -1;
+        }
+
+        // Coordinates are out of range
+        if (x > 1000 || x < 0 || y > 1000 || y < 0) 
+        {
+            fprintf(stderr, "Coordinates of an object are out of range!\n");
+            *arr = NULL;
+            return -1;
+        }
+
+        temp_obj.id = (int) id;
+        temp_obj.x = x;
+        temp_obj.y = y;
+        
         append_cluster(*arr + i, temp_obj); // Appending i-th object to i-th cluster
     }
 
@@ -386,7 +441,7 @@ int main(int argc, char *argv[])
     if (argc > 3 || argc < 2) // Wrong number of arguments of command line
     {
         fprintf(stderr, "Wrong number of arguments of command line!\n");
-        return 1;
+        exit(1);
     }
 
     char *input_file = argv[1]; // argc will always be at least 2 => nothing to worry about
@@ -394,25 +449,33 @@ int main(int argc, char *argv[])
     int n_clusters = 1; 
     // Checking if the user set the optional argument
     if (argc == 3) 
+    {
+        if (atoi(argv[2]) != atof(argv[2]))
+        {
+            fprintf(stderr, "Wrong arguments of command line! Entered number of clusters is not an integer value!\n");
+            exit(1);
+        }
         n_clusters = atoi(argv[2]);
+    }
+        
     
     //Checking if entered number of clusters is valid
     if (n_clusters <= 0)
     {
         fprintf(stderr, "Wrong arguments od command line! Entered number of clusters is not valid!\n");
-        return 1;
+        exit(1);
     }
     // Setting the default number of clusters to the number of objects in input file
     int default_n_clusters = load_clusters(input_file, &clusters);  
     if (default_n_clusters == -1) // error while loading clusters occured
     {
         fprintf(stderr, "Error while loading clusters occured!\n");
-        return 1;
+        exit(1);
     }
     if (n_clusters > default_n_clusters)
     {
         fprintf(stderr, "Invalid number of clusters. You can not make more clusters by uniting them\n");
-        return -1;
+        exit(1);
     }
     
     // WHAT IF N_CLUSTERS > DEFAULT_N_CLUSTERS????????
@@ -431,7 +494,7 @@ int main(int argc, char *argv[])
 
 
 
-
+    freeing_memory:
     // Freeing memory allocated for objects of each cluster
     for (int i = 0; i < n_clusters; i++)
     {
