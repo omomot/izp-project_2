@@ -143,7 +143,9 @@ struct cluster_t *resize_cluster(struct cluster_t *c, int new_cap)
  Prida objekt 'obj' na konec shluku 'c'. Rozsiri shluk, pokud se do nej objekt
  nevejde.
  */
-void append_cluster(struct cluster_t *c, struct obj_t obj)
+//void append_cluster(struct cluster_t *c, struct obj_t obj)
+// returns 0 if any error occures, otherwise - returns 1
+int append_cluster(struct cluster_t *c, struct obj_t obj)
 {
     // TODO
     if (c->size == c->capacity)
@@ -153,13 +155,14 @@ void append_cluster(struct cluster_t *c, struct obj_t obj)
         if (c == NULL)
         {
             fprintf(stderr, "Error while reallocating memory in append_cluster() occured!\n");
-            exit(1);
+            return 0;
         }
     }
     ((c->obj) + c->size)->id = obj.id;
     ((c->obj) + c->size)->x = obj.x;
     ((c->obj) + c->size)->y = obj.y;
     c->size++; 
+    return 1;
 }
 
 /*
@@ -172,7 +175,9 @@ void sort_cluster(struct cluster_t *c);
  Objekty ve shluku 'c1' budou serazeny vzestupne podle identifikacniho cisla.
  Shluk 'c2' bude nezmenen.
  */
-void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
+//void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
+//returns 0 if any error occures otherwise - return 1
+int merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
 {
     assert(c1 != NULL);
     assert(c2 != NULL);
@@ -183,16 +188,22 @@ void merge_clusters(struct cluster_t *c1, struct cluster_t *c2)
         if ((c1 = resize_cluster(c1, c1->size + c2->size)) == NULL)
         {
             fprintf(stderr, "Error while reallocating memory in merge_clusters() occured!\n");
-            exit(1);
+            return 0;
         }
     }
 
     for (int i = 0; i < c2->size; i++)
     {
         struct obj_t temp_obj = *(c2->obj + i);
-        append_cluster(c1, temp_obj);
+        
+        if (!append_cluster(c1, temp_obj))
+        {
+            fprintf(stderr, "Error while appending object to cluster in merge_clusters() occured!\n");
+            return 0;
+        }
     }
     sort_cluster(c1);
+    return 1;
 }
 
 /**********************************************************************/
@@ -347,7 +358,6 @@ int load_clusters(char *filename, struct cluster_t **arr)
 
     int N; 
     int read = fscanf(objects, "count=%d\n", &N); // Reading the number of objects from input file
-    dint(N);
     if (!read) // read == 1 if count was read, otherwise is 0
     {
         fprintf(stderr, "Error while reading count occured!\n");
@@ -371,7 +381,6 @@ int load_clusters(char *filename, struct cluster_t **arr)
     for (int i = 0; i < N; i++)
     {
         init_cluster(*arr + i, CLUSTER_CHUNK);
-        //init_cluster(*arr + i, 1); // Initializing i-th cluster with capacity == 1
         struct obj_t temp_obj; // temporary object to read data from input file into
         float id, x, y;
         int read_obj = fscanf(objects, "%f %f %f\n", &id, &x, &y); // Reading i-th object data from input file
@@ -412,7 +421,13 @@ int load_clusters(char *filename, struct cluster_t **arr)
         temp_obj.x = x;
         temp_obj.y = y;
         
-        append_cluster(*arr + i, temp_obj); // Appending i-th object to i-th cluster
+        
+        if (!append_cluster(*arr + i, temp_obj))// Appending i-th object to i-th cluster and checking if everything was OK
+        {
+            fprintf(stderr, "Error while adding object into cluster in load_clusters() occured!\n");
+            *arr = NULL;
+            return -1;
+        }
     }
 
     fclose(objects); // closing input file
@@ -431,6 +446,17 @@ void print_clusters(struct cluster_t *carr, int narr)
         printf("cluster %d: ", i);
         print_cluster(&carr[i]);
     }
+}
+
+void cluster_dtor(struct cluster_t *c, int n_clust)
+{
+    // Freeing memory allocated for objects of each cluster
+    for (int i = 0; i < n_clust; i++)
+    {
+        clear_cluster(c + i);
+    }
+    //Freeing memory, allocated for array of clusters
+    free(c);
 }
 // argv[] = {./cluster, FILE, N(optional)}
 int main(int argc, char *argv[])
@@ -465,26 +491,35 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Wrong arguments od command line! Entered number of clusters is not valid!\n");
         exit(1);
     }
+    
     // Setting the default number of clusters to the number of objects in input file
-    int default_n_clusters = load_clusters(input_file, &clusters);  
+    int default_n_clusters = load_clusters(input_file, &clusters);  //memory allocation and clusters loading
+    
     if (default_n_clusters == -1) // error while loading clusters occured
     {
         fprintf(stderr, "Error while loading clusters occured!\n");
+        cluster_dtor(clusters, default_n_clusters);
         exit(1);
     }
     if (n_clusters > default_n_clusters)
     {
         fprintf(stderr, "Invalid number of clusters. You can not make more clusters by uniting them\n");
+        cluster_dtor(clusters, default_n_clusters);
         exit(1);
     }
     
-    // WHAT IF N_CLUSTERS > DEFAULT_N_CLUSTERS????????
+    
     
     for (int number_clusters = default_n_clusters; number_clusters > n_clusters; number_clusters--)
     {
         int i, j;
         find_neighbours(clusters, number_clusters, &i, &j);
-        merge_clusters(clusters + i, clusters + j);
+        if (!merge_clusters(clusters + i, clusters + j))
+        {
+            fprintf(stderr, "Error while merging clusters in main occured!\n");
+            cluster_dtor(clusters, number_clusters);
+            return 1;
+        }
         remove_cluster(clusters, number_clusters, j);
     }
     print_clusters(clusters, n_clusters);
@@ -494,13 +529,8 @@ int main(int argc, char *argv[])
 
 
 
-    freeing_memory:
-    // Freeing memory allocated for objects of each cluster
-    for (int i = 0; i < n_clusters; i++)
-    {
-        clear_cluster(clusters+i);
-    }
-    //Freeing memory, allocated for array of clusters
-    free(clusters);
+    
+    
+    cluster_dtor(clusters, n_clusters);
     return 0;
 }
