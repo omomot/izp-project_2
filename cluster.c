@@ -124,8 +124,6 @@ void cluster_dtor(struct cluster_t *c, int n_clust)
         debug("Freeing cluster ");
         dint(i);
     }
-    //Freeing memory, allocated for array of clusters -- USELESS
-    //free(c);
 }
 
 
