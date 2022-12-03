@@ -115,16 +115,20 @@ void clear_cluster(struct cluster_t *c)
 
 /*
  Frees memory allocated for an array of objects of each of 'n_clust' clusters 
+ Frees memory allocated for an array of clusters
+ Sets a pointer to array of clusters to NULL
 */
-void clusters_dtor(struct cluster_t *c, int n_clust)
+void clusters_dtor(struct cluster_t **c, int n_clust)
 {
     // Freeing memory allocated for objects of each cluster
     for (int i = 0; i < n_clust; i++)
     {
-        clear_cluster(c + i);
+        clear_cluster(*c + i);
         debug("Freeing cluster ");
         dint(i);
     }
+    free(*c);
+    *c = NULL;
 }
 
 
@@ -461,12 +465,12 @@ int load_clusters(char *filename, struct cluster_t **arr)
             fprintf(stderr, "Error while initialization %d-th cluster occured!\n", i);
             
             // Freeing memory allocated for an array of objects of each of i clusters
-            clusters_dtor(*arr, i);
+            clusters_dtor(arr, i);
             
             // Freeing memory allocated for an array of clusters
-            free(*arr);
+            //free(*arr);
             
-            *arr = NULL;
+            //*arr = NULL;
             goto err_free_ids;
             // free(ids);
             // fclose(objects);
@@ -485,9 +489,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
         if (read_obj != 3)
         {
             fprintf(stderr, "Invalid number of data on one line in input file!\n");
-            clusters_dtor(*arr, N);
-            free(*arr);
-            *arr = NULL;
+            clusters_dtor(arr, N);
+            //free(*arr);
+            //*arr = NULL;
             goto err_free_ids;
         }
 
@@ -495,9 +499,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
         if (trunc(id) != id) 
         {
             fprintf(stderr, "%d-th Object id is not integer!\n", i);
-            clusters_dtor(*arr, N);
-            free(*arr);
-            *arr = NULL;
+            clusters_dtor(arr, N);
+            //free(*arr);
+            //*arr = NULL;
             goto err_free_ids;
         }
 
@@ -505,9 +509,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
         if (trunc(x) != x || trunc(y) != y)
         {
             fprintf(stderr, "Object coordinates are not integer!\n");
-            clusters_dtor(*arr, N);
-            free(*arr);
-            *arr = NULL;
+            clusters_dtor(arr, N);
+            //free(*arr);
+            //*arr = NULL;
             goto err_free_ids;
         }
 
@@ -515,9 +519,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
         if (x > 1000 || x < 0 || y > 1000 || y < 0) 
         {
             fprintf(stderr, "Coordinates of an object are out of range!\n");
-            clusters_dtor(*arr, N);
-            free(*arr);
-            *arr = NULL;
+            clusters_dtor(arr, N);
+            //free(*arr);
+            //*arr = NULL;
             goto err_free_ids;
         }
 
@@ -531,9 +535,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
         if (!append_cluster(*arr + i, temp_obj))
         {
             fprintf(stderr, "Error while adding object into cluster in load_clusters() occured!\n");
-            clusters_dtor(*arr, N);
-            free(*arr);
-            *arr = NULL;
+            clusters_dtor(arr, N);
+            //free(*arr);
+            //*arr = NULL;
             goto err_free_ids;
         }
     }
@@ -542,9 +546,9 @@ int load_clusters(char *filename, struct cluster_t **arr)
     if (!check_uniqueness(ids, N))
     {
         fprintf(stderr, "Ids in input file are not unique!\n");
-        clusters_dtor(*arr, N);
-        free(*arr);
-        *arr = NULL;
+        clusters_dtor(arr, N);
+        //free(*arr);
+        // *arr = NULL;
         goto err_free_ids;
     }
     err_free_ids:
@@ -611,7 +615,7 @@ int main(int argc, char *argv[])
     int default_n_clusters = 0;
     default_n_clusters = load_clusters(input_file, &clusters);  //memory allocation and clusters loading
     
-    printf("Default_n_clusters : %d\n", default_n_clusters);
+    dint(default_n_clusters);
  
  
     // Error while loading clusters occured - major problem!
@@ -624,8 +628,8 @@ int main(int argc, char *argv[])
     if (n_clusters > default_n_clusters)
     {
         fprintf(stderr, "Invalid number of clusters. You can not make more clusters by uniting them\n");
-        clusters_dtor(clusters, default_n_clusters);
-        free(clusters);
+        clusters_dtor(&clusters, default_n_clusters);
+        //free(clusters);
         exit(1);
     }
     
@@ -638,8 +642,8 @@ int main(int argc, char *argv[])
         if (!merge_clusters(clusters + i, clusters + j))
         {
             fprintf(stderr, "Error while merging clusters in main occured!\n");
-            clusters_dtor(clusters, number_clusters);
-            free(clusters);
+            clusters_dtor(&clusters, number_clusters);
+            //free(clusters);
             return 1;
         }
         remove_cluster(clusters, number_clusters, j);
@@ -653,7 +657,7 @@ int main(int argc, char *argv[])
 
     
     
-    clusters_dtor(clusters, n_clusters);
-    free(clusters);
+    clusters_dtor(&clusters, n_clusters);
+    //free(clusters);
     return 0;
 }
