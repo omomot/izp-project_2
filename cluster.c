@@ -1,6 +1,6 @@
 /**
  * Author : Oleh Momot, xmomot00
- * Date : 03.12.2022
+ * Date : 04.12.2022
  * 
  * Kostra programu pro 2. projekt IZP 2022/23
  *
@@ -9,10 +9,11 @@
  */
 
 /**
- * Errors:
- * 3) count=''
- * 4) number of objects on one line is invalid
- * 4) asserts do not work with NDEBUG defined
+ * Program response to input errors:
+ * 
+ * !!!Program does not work correctly if:
+ *  1) Count of objects in input file is not entered
+ *  2) Line with object information contains invalid number of values
 */
 #include <stdio.h>
 #include <stdlib.h>
